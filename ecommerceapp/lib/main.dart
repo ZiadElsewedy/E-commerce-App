@@ -1,9 +1,15 @@
+import 'package:ecommerceapp/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'Features/auth/Presentation/Login_Page.dart';
 import 'Features/auth/Presentation/Register_Page.dart';
 import 'themes/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
