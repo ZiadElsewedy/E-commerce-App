@@ -45,7 +45,7 @@ class AppUser {
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
         userId: json['user_id'] as String,
         email: json['email'] as String,
-        name: json['name'] as String,
+        name: json['name'] as String?,
         phone: json['phone'] as String?,
       );
 
