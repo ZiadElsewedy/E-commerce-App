@@ -70,7 +70,23 @@ final class FirebaseAuthRepository implements AuthRepository {
       throw Exception('Login failed');
     }
 
-    // Return the user - let AuthCubit handle email verification check
+    // Try to get user data from Firestore
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        return AppUser(
+          userId: user.uid,
+          email: user.email!,
+          name: data['name'] as String?,
+          phone: data['phone'] as String?,
+        );
+      }
+    } catch (firestoreError) {
+      print('Firestore error (non-critical): $firestoreError');
+    }
+
+    // Return basic user if Firestore data not found
     return AppUser(
       userId: user.uid,
       email: user.email!,
@@ -105,15 +121,36 @@ Future<AppUser> registerwithEmailAndPassword(String email, String password) asyn
   }
 }
 
-  /// Save user data to Firestore
+  /// Save user data to Firestore (only if not exists or update if needed)
   Future<void> saveUserData(AppUser user) async {
     try {
-      await _firestore.collection('users').doc(user.userId).set({
-        'email': user.email,
-        'name': user.name,
-        'phone': user.phone,
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      final docRef = _firestore.collection('users').doc(user.userId);
+      final docSnapshot = await docRef.get();
+      
+      if (!docSnapshot.exists) {
+        // New user - create with all fields
+        await docRef.set({
+          'email': user.email,
+          'name': user.name,
+          'phone': user.phone,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Existing user - only update name and phone if provided
+        Map<String, dynamic> updates = {
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        
+        if (user.name != null && user.name!.isNotEmpty) {
+          updates['name'] = user.name;
+        }
+        if (user.phone != null && user.phone!.isNotEmpty) {
+          updates['phone'] = user.phone;
+        }
+        
+        await docRef.update(updates);
+      }
     } catch (e) {
       print('Failed to save user data: $e');
       // Don't throw - this is non-critical
@@ -230,18 +267,28 @@ Future<bool> isEmailVerified() async {
       // Sign in to Firebase with the Google credential
       final userCredential = await firebaseAuth.signInWithCredential(credential);
       
-      // Create AppUser with Google data
-      final appUser = AppUser(
-        userId: userCredential.user!.uid,
-        email: userCredential.user!.email!,
-        name: googleUser.displayName,
-      );
+      // Check if user already exists in Firestore
+      final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
       
-      // Save Google user data to Firestore
-      await saveUserData(appUser);
-      
-      // Google users are automatically verified, no email verification needed
-      return appUser;
+      if (!userDoc.exists) {
+        // New Google user - save to Firestore
+        final appUser = AppUser(
+          userId: userCredential.user!.uid,
+          email: userCredential.user!.email!,
+          name: googleUser.displayName,
+        );
+        await saveUserData(appUser);
+        return appUser;
+      } else {
+        // Existing user - get from Firestore
+        final data = userDoc.data()!;
+        return AppUser(
+          userId: userCredential.user!.uid,
+          email: userCredential.user!.email!,
+          name: data['name'] as String?,
+          phone: data['phone'] as String?,
+        );
+      }
     } catch (e) {
       throw Exception('Failed to sign in with Google: ${e.toString()}');
     }
