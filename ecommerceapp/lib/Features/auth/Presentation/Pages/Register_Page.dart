@@ -61,57 +61,49 @@ class _RegisterPageState extends State<RegisterPage> {
       listener: (context, state) {
         // Update loading state
         if (state is AuthLoading) {
-          if (mounted) {
-            setState(() => _isLoading = true);
-          }
+          setState(() => _isLoading = true);
         } else {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
+          setState(() => _isLoading = false);
         }
         
         // The main.dart BlocConsumer will handle navigation to email verification
         // We just need to show local messages here
         if (state is AuthError) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.errorMessage),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         } else if (state is AuthRegistrationSuccess) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.green,
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
         }
       },
       child: Scaffold(
-          backgroundColor: Colors.grey[100],
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.grey[600]),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.grey[600]),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
                 const SizedBox(height: 20),
                 Icon(
                   Icons.person_add_alt_1,
@@ -207,11 +199,11 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
-                  ],
+              ],
                 ),
-              ),
             ),
           ),
+        ),
       ),
     );
   }

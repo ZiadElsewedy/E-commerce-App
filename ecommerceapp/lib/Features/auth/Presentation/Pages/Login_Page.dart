@@ -65,30 +65,24 @@ class _LoginPageState extends State<LoginPage> {
       listener: (context, state) {
         // Update loading state
         if (state is AuthLoading) {
-          if (mounted) {
-            setState(() => _isLoading = true);
-          }
+          setState(() => _isLoading = true);
         } else {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _isGoogleLoading = false;
-            });
-          }
+          setState(() {
+            _isLoading = false;
+            _isGoogleLoading = false;
+          });
         }
         
         // The main.dart BlocConsumer will handle navigation to home/email verification
         // We just need to show local errors here
         if (state is AuthError) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.errorMessage),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       },
       child: Scaffold(
