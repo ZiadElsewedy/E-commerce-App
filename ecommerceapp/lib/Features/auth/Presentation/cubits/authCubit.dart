@@ -83,6 +83,9 @@ class AuthCubit extends Cubit<AuthStates> {
       // Create updated user with name and phone if provided
       final updatedUser = user.copyWith(name: name, phone: phone);
       
+      // Save user data to Firestore
+      await (authRepository as dynamic).saveUserData(updatedUser);
+      
       emit(AuthRegistrationSuccess(
         updatedUser,
         'Registration successful! Please check your email to verify your account.',
