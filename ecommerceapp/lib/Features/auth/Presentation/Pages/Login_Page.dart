@@ -7,6 +7,7 @@ import '../widgets/validation.dart';
 import '../widgets/custom_button.dart';
 import 'Register_Page.dart';
 import 'ForgetPassPage.dart';
+import 'GoogleSignIn.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,6 +22,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   late final AuthCubit authCubit;
 
@@ -48,27 +50,45 @@ class _LoginPageState extends State<LoginPage> {
    await authCubit.login(email: Email, password: Password);
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+    final authCubit = context.read<AuthCubit>();
+    await authCubit.signInWithGoogle();
+    if (mounted) {
+      setState(() => _isGoogleLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthStates>(
       listener: (context, state) {
         // Update loading state
         if (state is AuthLoading) {
-          setState(() => _isLoading = true);
+          if (mounted) {
+            setState(() => _isLoading = true);
+          }
         } else {
-          setState(() => _isLoading = false);
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isGoogleLoading = false;
+            });
+          }
         }
         
         // The main.dart BlocConsumer will handle navigation to home/email verification
         // We just need to show local errors here
         if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.errorMessage),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         }
       },
       child: Scaffold(
@@ -145,6 +165,36 @@ class _LoginPageState extends State<LoginPage> {
                         isLoading: _isLoading,
                       ),
                       const SizedBox(height: 20),
+                      
+                      // Divider with "OR"
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.grey[400], thickness: 1)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'OR',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: Colors.grey[400], thickness: 1)),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Google Sign-In Button
+                      GoogleSignInButton(
+                        onPressed: _signInWithGoogle,
+                        isLoading: _isGoogleLoading,
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
                       TextButton(
                         onPressed: () {
                           Navigator.of(context).push(

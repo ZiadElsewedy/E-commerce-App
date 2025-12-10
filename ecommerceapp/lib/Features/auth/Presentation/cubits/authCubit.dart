@@ -153,6 +153,24 @@ class AuthCubit extends Cubit<AuthStates> {
     }
   }
 
+  /// Sign in with Google
+  Future<void> signInWithGoogle() async {
+    emit(AuthLoading());
+    try {
+      final user = await authRepository.signInWithGoogle();
+      
+      if (user != null) {
+        // Google users are automatically verified, no email verification needed
+        emit(Authenticated(user));
+      } else {
+        // User cancelled the sign-in
+        emit(Unauthenticated());
+      }
+    } catch (e) {
+      emit(AuthError(_getErrorMessage(e)));
+    }
+  }
+
 
   Future<void> deleteAccount() async {
     emit(AuthLoading());

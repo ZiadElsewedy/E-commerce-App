@@ -1,9 +1,11 @@
 import 'package:ecommerceapp/Features/auth/Domain/Entities/App_User.dart';
 import 'package:ecommerceapp/Features/auth/Domain/repo/Auth_repo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 final class FirebaseAuthRepository implements AuthRepository {
-  final FirebaseAuth firebaseAuth= FirebaseAuth.instance; 
+  final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); 
   @override
   Future<void> deleteAccount() async {
     try {
@@ -115,7 +117,14 @@ Future<AppUser> registerwithEmailAndPassword(String email, String password) asyn
   @override
   Future<void> logout() async {
     try {
+      // Sign out from Firebase
       await firebaseAuth.signOut();
+      
+      // Sign out from Google to allow account selection next time
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+        await _googleSignIn.disconnect();
+      }
     } catch (e) {
       throw Exception('Failed to logout');
     }
@@ -156,6 +165,40 @@ Future<bool> isEmailVerified() async {
       await user.sendEmailVerification();
     } catch (e) {
       throw Exception('Failed to resend verification email');
+    }
+  }
+  
+  @override
+  Future<AppUser?> signInWithGoogle() async {
+    try {
+      // Trigger the authentication flow (will show account picker)
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        return null;
+      }
+      
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      // Create a new credential with proper null handling
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+        accessToken: googleAuth.accessToken,
+      );
+      
+      // Sign in to Firebase with the Google credential
+      final userCredential = await firebaseAuth.signInWithCredential(credential);
+      
+      // Google users are automatically verified, no email verification needed
+      return AppUser(
+        userId: userCredential.user!.uid,
+        email: userCredential.user!.email!,
+        name: googleUser.displayName,
+      );
+    } catch (e) {
+      throw Exception('Failed to sign in with Google: ${e.toString()}');
     }
   }
 }

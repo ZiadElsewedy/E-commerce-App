@@ -55,7 +55,10 @@ class MyApp extends StatelessWidget {
             return const HomeScreen();
           } else if (state is EmailVerificationPending) {
             return const EmailVerificationPage();
-          } else if (state is Unauthenticated || state is AuthError) {
+          } else if (state is Unauthenticated) {
+            return const LoginPage();
+          } else if (state is AuthError) {
+            // Return to login but don't show error here (BlocListener handles it)
             return const LoginPage();
           }
 
