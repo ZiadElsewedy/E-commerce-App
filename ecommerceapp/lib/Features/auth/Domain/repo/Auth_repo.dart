@@ -10,4 +10,5 @@ abstract class AuthRepository {
   Future<AppUser?> getCurrentUser();
   Future<void> deleteAccount();
   Future<bool> isEmailVerified();
+  Future<void> resendVerificationEmail();
 }

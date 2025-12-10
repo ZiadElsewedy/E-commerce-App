@@ -48,13 +48,7 @@ final class FirebaseAuthRepository implements AuthRepository {
       throw Exception('Login failed');
     }
 
-    // ⭐ Step 2: Check email verification
-    await user.reload();
-    if (!user.emailVerified) {
-      throw Exception('Email not verified yet');
-    }
-
-    // ⭐ لو الإيميل متفعل → يبقى نرجّع اليوزر
+    // Return the user - let AuthCubit handle email verification check
     return AppUser(
       userId: user.uid,
       email: user.email!,
@@ -143,6 +137,25 @@ Future<bool> isEmailVerified() async {
     return user?.emailVerified ?? false;
     } catch (e) {
       throw Exception('Failed to check if email is verified');
+    }
+  }
+
+  @override
+  Future<void> resendVerificationEmail() async {
+    try {
+      User? user = firebaseAuth.currentUser;
+
+      if (user == null) {
+        throw Exception('User not found');
+      }
+
+      if (user.emailVerified) {
+        throw Exception('Email is already verified');
+      }
+
+      await user.sendEmailVerification();
+    } catch (e) {
+      throw Exception('Failed to resend verification email');
     }
   }
 }

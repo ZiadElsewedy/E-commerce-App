@@ -7,7 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'Features/auth/Presentation/Pages/Login_Page.dart';
-import 'Features/auth/Presentation/Pages/Register_Page.dart';
+import 'Features/auth/Presentation/Pages/EmailVerficationPage.dart';
 import 'themes/app_theme.dart';
 
 void main() async {
@@ -32,31 +32,36 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'E-Commerce App',
       theme: AppTheme.lightTheme,
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(),
-        '/home': (context) => const HomeScreen(),
-      },
       home: BlocConsumer<AuthCubit, AuthStates>(
         listener: (context, state) {
-          if (state is Authenticated) {
-            Navigator.of(context).pushNamed('/home');
-          } else if (state is Unauthenticated) {
-            Navigator.of(context).pushNamed('/login');
-          } else if (state is EmailVerificationPending) {
-            Navigator.of(context).pushNamed('/emailVerification');
-          } else if (state is AuthError) {
+          // Listener is for side effects like showing snackbars
+          if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage)),
+              SnackBar(
+                content: Text(state.errorMessage),
+                backgroundColor: Theme.of(context).colorScheme.error,
+                behavior: SnackBarBehavior.floating,
+              ),
             );
           }
         },
         builder: (context, state) {
+          // Builder determines which page to show based on state
           if (state is AuthLoading || state is AuthInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (state is Authenticated) {
+            return const HomeScreen();
+          } else if (state is EmailVerificationPending) {
+            return const EmailVerificationPage();
+          } else if (state is Unauthenticated || state is AuthError) {
+            return const LoginPage();
           }
-          return const SizedBox.shrink();
+
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         },
       )
     ));

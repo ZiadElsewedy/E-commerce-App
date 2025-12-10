@@ -1,4 +1,7 @@
+import 'package:ecommerceapp/Features/auth/Presentation/cubits/authCubit.dart';
+import 'package:ecommerceapp/Features/auth/Presentation/cubits/authStates.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widgets/textfield.dart';
 import '../widgets/validation.dart';
 import '../widgets/custom_button.dart';
@@ -31,41 +34,76 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  Future<void> _handleRegister() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+  Future<void> Register() async {
+    String name = _nameController.text.trim();
+    String email = _emailController.text.trim();
+    String phone = _phoneController.text.trim();
+    String password = _passwordController.text.trim();
+    String confirmPassword = _confirmPasswordController.text.trim();
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      return;
     }
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields')));
+      return;
+    }
+    final authCubit = context.read<AuthCubit>();
+    await authCubit.register(email: email, password: password, name: name, phone: phone);
+  
+
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.grey[600]),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
+    return BlocListener<AuthCubit, AuthStates>(
+      listener: (context, state) {
+        // Update loading state
+        if (state is AuthLoading) {
+          setState(() => _isLoading = true);
+        } else {
+          setState(() => _isLoading = false);
+        }
+        
+        // The main.dart BlocConsumer will handle navigation to email verification
+        // We just need to show local messages here
+        if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.errorMessage),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else if (state is AuthRegistrationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+          backgroundColor: Colors.grey[100],
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: Colors.grey[600]),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
                 const SizedBox(height: 20),
                 Icon(
                   Icons.person_add_alt_1,
@@ -132,13 +170,13 @@ class _RegisterPageState extends State<RegisterPage> {
                   onTogglePasswordVisibility: () {
                     setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
                   },
-                  onFieldSubmitted: (_) => _handleRegister(),
+                  onFieldSubmitted: (_) => Register(),
                 ),
                 const SizedBox(height: 32),
                 CustomButton(
                   text: 'REGISTER',
-                  onPressed: _handleRegister,
-                  isLoading: _isLoading,
+                    onPressed: Register,
+                    isLoading: _isLoading,
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -149,7 +187,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.of(context).pushNamed('/login'),
+                      onPressed: () => Navigator.of(context).pop(),
                       child: Text(
                         'Sign In',
                         style: TextStyle(
@@ -161,10 +199,11 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ],
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
       ),
     );
   }

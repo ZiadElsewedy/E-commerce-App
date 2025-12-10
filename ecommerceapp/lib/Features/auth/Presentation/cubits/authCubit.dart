@@ -35,7 +35,7 @@ class AuthCubit extends Cubit<AuthStates> {
   }
 
 
-  Future<void> login(String email, String password) async {
+  Future<void> login({required String email, required String password, }) async {
     // Validate input
     if (email.isEmpty || password.isEmpty) {
       emit(AuthError('Email and password cannot be empty'));
@@ -45,7 +45,15 @@ class AuthCubit extends Cubit<AuthStates> {
     emit(AuthLoading());
     try {
       final user = await authRepository.loginwithEmailAndPassword(email, password);
-      emit(Authenticated(user));
+      
+      // Check if email is verified
+      final isVerified = await authRepository.isEmailVerified();
+      
+      if (isVerified) {
+        emit(Authenticated(user));
+      } else {
+        emit(EmailVerificationPending(user));
+      }
     } catch (e) {
       emit(AuthError(_getErrorMessage(e)));
     }
@@ -133,6 +141,15 @@ class AuthCubit extends Cubit<AuthStates> {
       return isVerified;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<void> resendVerificationEmail() async {
+    try {
+      await authRepository.resendVerificationEmail();
+      // Keep the current state (EmailVerificationPending)
+    } catch (e) {
+      emit(AuthError(_getErrorMessage(e)));
     }
   }
 
