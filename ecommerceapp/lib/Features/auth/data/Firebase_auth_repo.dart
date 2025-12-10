@@ -121,12 +121,16 @@ Future<AppUser> registerwithEmailAndPassword(String email, String password) asyn
       await firebaseAuth.signOut();
       
       // Sign out from Google to allow account selection next time
-      if (await _googleSignIn.isSignedIn()) {
-        await _googleSignIn.signOut();
-        await _googleSignIn.disconnect();
+      try {
+        if (await _googleSignIn.isSignedIn()) {
+          await _googleSignIn.signOut();
+        }
+      } catch (googleError) {
+        // Google sign-out failed, but continue with Firebase logout
+        print('Google sign-out error (non-critical): $googleError');
       }
     } catch (e) {
-      throw Exception('Failed to logout');
+      throw Exception('Failed to logout: ${e.toString()}');
     }
   }
   
