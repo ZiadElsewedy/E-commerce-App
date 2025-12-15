@@ -101,7 +101,7 @@ final class FirebaseAuthRepository implements AuthRepository {
   @override
 Future<AppUser> registerwithEmailAndPassword(String email, String password) async {
   try {
-    // 1️⃣ Register user
+    // 1️⃣ Register user - Firebase will automatically check if email exists
     UserCredential userCredential = await firebaseAuth
         .createUserWithEmailAndPassword(email: email, password: password);
 
@@ -116,8 +116,21 @@ Future<AppUser> registerwithEmailAndPassword(String email, String password) asyn
 
     return user;
 
+  } on FirebaseAuthException catch (e) {
+    // Handle specific Firebase Auth errors
+    if (e.code == 'email-already-in-use') {
+      throw Exception('This email is already registered. Please login instead.');
+    } else if (e.code == 'weak-password') {
+      throw Exception('Password is too weak. Please use a stronger password.');
+    } else if (e.code == 'invalid-email') {
+      throw Exception('Invalid email address format.');
+    } else if (e.code == 'operation-not-allowed') {
+      throw Exception('Email/password accounts are not enabled.');
+    } else {
+      throw Exception('Registration failed: ${e.message}');
+    }
   } catch (e) {
-    throw Exception('Failed to register with email and password');
+    throw Exception(e.toString());
   }
 }
 

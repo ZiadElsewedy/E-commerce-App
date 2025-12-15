@@ -35,24 +35,47 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> Register() async {
+    // Validate fields first
     String name = _nameController.text.trim();
     String email = _emailController.text.trim();
     String phone = _phoneController.text.trim();
     String password = _passwordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
-      return;
-    }
-
+    
+    // Check all required fields
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please fill in all required fields'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
-    final authCubit = context.read<AuthCubit>();
-    await authCubit.register(email: email, password: password, name: name, phone: phone);
-  
 
+    // Check password match
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Passwords do not match'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Validate form
+    if (_formKey.currentState?.validate() ?? false) {
+      final authCubit = context.read<AuthCubit>();
+      await authCubit.register(
+        email: email, 
+        password: password, 
+        name: name, 
+        phone: phone.isNotEmpty ? phone : null,
+      );
+    }
   }
 
   @override
