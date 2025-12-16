@@ -1,5 +1,11 @@
+import 'package:ecommerceapp/Admin/presentation/widgets/buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../Features/Products/presentation/pages/products_management_page.dart';
+import '../Features/Banners/presentation/pages/banners_management_page.dart';
+import '../Features/Promos/presentation/pages/promos_management_page.dart';
+import '../Features/Coupons/presentation/pages/coupons_management_page.dart';
+import '../Features/Categories/presentation/pages/categories_management_page.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
@@ -98,7 +104,7 @@ class AdminPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard(
+                  child: buildStatCard(
                     icon: Icons.people_outline,
                     title: 'Users',
                     value: '0',
@@ -107,7 +113,7 @@ class AdminPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatCard(
+                  child: buildStatCard(
                     icon: Icons.shopping_bag_outlined,
                     title: 'Products',
                     value: '0',
@@ -122,7 +128,7 @@ class AdminPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard(
+                  child: buildStatCard(
                     icon: Icons.shopping_cart_outlined,
                     title: 'Orders',
                     value: '0',
@@ -131,7 +137,7 @@ class AdminPage extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildStatCard(
+                  child: buildStatCard(
                     icon: Icons.attach_money,
                     title: 'Revenue',
                     value: '\$0',
@@ -156,49 +162,86 @@ class AdminPage extends StatelessWidget {
             const SizedBox(height: 16),
             
             // Quick Action Buttons
-            _buildActionButton(
-              icon: Icons.add_shopping_cart,
-              title: 'Add Product',
-              subtitle: 'Add new product to store',
-              color: Colors.blue,
-              onTap: () {
-                // TODO: Navigate to add product page
-              },
-            ),
-            
-            const SizedBox(height: 12),
-            
-            _buildActionButton(
+            buildActionButton(
               icon: Icons.inventory_2_outlined,
               title: 'Manage Products',
               subtitle: 'View and edit existing products',
+              color: Colors.blue,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProductsManagementPage(),
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 12),
+            
+            buildActionButton(
+              icon: Icons.view_carousel_outlined,
+              title: 'Manage Banners',
+              subtitle: 'Create and edit promotional banners',
               color: Colors.orange,
               onTap: () {
-                // TODO: Navigate to manage products page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BannersManagementPage(),
+                  ),
+                );
               },
             ),
             
             const SizedBox(height: 12),
             
-            _buildActionButton(
-              icon: Icons.receipt_long_outlined,
-              title: 'View Orders',
-              subtitle: 'Check customer orders',
+            buildActionButton(
+              icon: Icons.local_offer_outlined,
+              title: 'Manage Promos',
+              subtitle: 'Set up promotional offers',
               color: Colors.green,
               onTap: () {
-                // TODO: Navigate to orders page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PromosManagementPage(),
+                  ),
+                );
               },
             ),
             
             const SizedBox(height: 12),
             
-            _buildActionButton(
-              icon: Icons.people_alt_outlined,
-              title: 'Manage Users',
-              subtitle: 'View and manage customers',
+            buildActionButton(
+              icon: Icons.confirmation_number_outlined,
+              title: 'Manage Coupons',
+              subtitle: 'Create and manage discount coupons',
               color: Colors.purple,
               onTap: () {
-                // TODO: Navigate to users page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CouponsManagementPage(),
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 12),
+            
+            buildActionButton(
+              icon: Icons.category_outlined,
+              title: 'Manage Categories',
+              subtitle: 'Organize products into categories',
+              color: Colors.teal,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CategoriesManagementPage(),
+                  ),
+                );
               },
             ),
           ],
@@ -207,125 +250,4 @@ class AdminPage extends StatelessWidget {
     );
   }
   
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildActionButton({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey[400],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
-
