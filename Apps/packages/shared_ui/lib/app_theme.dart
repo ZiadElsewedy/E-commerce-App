@@ -22,9 +22,8 @@ class AppTheme {
         primary: Colors.grey[700]!, // Main grey color for buttons and primary elements
         secondary: Colors.grey[600]!, // Secondary grey color
         
-        // Surface and background colors
+        // Surface colors
         surface: Colors.grey[50]!, // Background surface color
-        background: Colors.grey[50]!, // App background color
         
         // Error color (keeping red for errors)
         error: Colors.red,
@@ -33,11 +32,10 @@ class AppTheme {
         onPrimary: Colors.white, // Text on primary color
         onSecondary: Colors.white, // Text on secondary color
         onSurface: Colors.grey[900]!, // Text on surface
-        onBackground: Colors.grey[900]!, // Text on background
         onError: Colors.white, // Text on error color
         
         // Additional color properties
-        surfaceVariant: Colors.grey[100]!,
+        surfaceContainerHighest: Colors.grey[100]!,
         onSurfaceVariant: Colors.grey[700]!,
       ),
       
@@ -98,15 +96,13 @@ class AppTheme {
         tertiary: Colors.grey.shade900,
         inversePrimary: Colors.grey.shade300,
         surface: Colors.grey.shade900,
-        background: Colors.grey.shade900,
         error: Colors.red[400]!,
         onPrimary: Colors.grey.shade900,
         onSecondary: Colors.grey.shade100,
         onTertiary: Colors.grey.shade100,
         onSurface: Colors.grey.shade100,
-        onBackground: Colors.grey.shade100,
         onError: Colors.white,
-        surfaceVariant: Colors.grey.shade800,
+        surfaceContainerHighest: Colors.grey.shade800,
         onSurfaceVariant: Colors.grey.shade300,
       ),
       

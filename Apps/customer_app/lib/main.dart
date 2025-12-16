@@ -6,10 +6,12 @@ import 'package:ecommerceapp/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_ui/app_theme.dart';
 import 'Features/auth/Presentation/Pages/Login_Page.dart';
 import 'Features/auth/Presentation/Pages/EmailVerficationPage.dart';
-import 'themes/app_theme.dart';
 
+
+  
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
