@@ -8,6 +8,41 @@ class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
 
+  // Responsive breakpoints
+  static const double mobileBreakpoint = 600;
+  static const double tabletBreakpoint = 900;
+  static const double desktopBreakpoint = 1200;
+
+  /// Check if current device is mobile
+  static bool isMobile(BuildContext context) {
+    return MediaQuery.of(context).size.width < mobileBreakpoint;
+  }
+
+  /// Check if current device is tablet
+  static bool isTablet(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    return width >= mobileBreakpoint && width < tabletBreakpoint;
+  }
+
+  /// Check if current device is desktop
+  static bool isDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width >= desktopBreakpoint;
+  }
+
+  /// Get responsive dialog width
+  static double getDialogWidth(BuildContext context) {
+    if (isMobile(context)) return MediaQuery.of(context).size.width * 0.9;
+    if (isTablet(context)) return 500;
+    return 600;
+  }
+
+  /// Get responsive padding
+  static EdgeInsets getResponsivePadding(BuildContext context) {
+    if (isMobile(context)) return const EdgeInsets.all(16);
+    if (isTablet(context)) return const EdgeInsets.all(24);
+    return const EdgeInsets.all(32);
+  }
+
   /// Main theme data for the application.
   /// 
   /// Returns a ThemeData object with grey color scheme and consistent styling.

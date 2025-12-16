@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/categories_cubit.dart';
 import '../cubit/categories_states.dart';
 import '../../domain/entities/category_entity.dart';
+import 'category_products_page.dart';
+import 'uncategorized_products_page.dart';
 
 /// Categories Management Page
 /// Admin page for managing product categories (CRUD operations)
@@ -33,6 +35,17 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.inventory_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const UncategorizedProductsPage(),
+                ),
+              );
+            },
+            tooltip: 'Uncategorized Products',
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
@@ -149,6 +162,13 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => CategoryProductsPage(category: category),
+                ),
+              );
+            },
             leading: CircleAvatar(
               backgroundColor: Colors.teal.withValues(alpha: 0.1),
               child: const Icon(Icons.category, color: Colors.teal),
@@ -186,7 +206,13 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                   ),
                 PopupMenuButton<String>(
                   onSelected: (value) {
-                    if (value == 'edit') {
+                    if (value == 'view') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => CategoryProductsPage(category: category),
+                        ),
+                      );
+                    } else if (value == 'edit') {
                       _showEditCategoryDialog(category);
                     } else if (value == 'toggle') {
                       context.read<CategoriesCubit>().toggleCategoryStatus(
@@ -198,6 +224,16 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
                     }
                   },
                   itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'view',
+                      child: Row(
+                        children: [
+                          Icon(Icons.inventory_2, size: 20, color: Colors.teal),
+                          SizedBox(width: 8),
+                          Text('View Products'),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(

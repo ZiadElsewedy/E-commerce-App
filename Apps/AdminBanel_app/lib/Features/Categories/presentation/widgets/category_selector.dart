@@ -50,84 +50,100 @@ class _CategorySelectorState extends State<CategorySelector> {
         }
 
         if (state is CategoriesError) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
                   children: [
                     const Icon(Icons.error_outline, color: Colors.red, size: 20),
                     const SizedBox(width: 8),
-                    Expanded(
+                    const Expanded(
                       child: Text(
-                        state.errorMessage,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
+                        'Failed to load categories',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        context.read<CategoriesCubit>().fetchActiveCategories();
-                      },
-                      child: const Text('Retry'),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      context.read<CategoriesCubit>().fetchActiveCategories();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
         if (state is CategoriesEmpty) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-                ),
-                child: Column(
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Row(
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'No categories found. Please create a category first.',
-                            style: TextStyle(color: Colors.orange, fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // Navigate to categories page
-                        Navigator.pushNamed(context, '/categories');
-                      },
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add Category'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                    Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'No categories found',
+                        style: TextStyle(color: Colors.orange, fontSize: 12),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                const Text(
+                  'Please create a category first before adding products.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Close the current dialog and navigate to categories page
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed('/categories');
+                    },
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Add Category'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
@@ -159,31 +175,20 @@ class _CategorySelectorState extends State<CategorySelector> {
             items: categories.map((category) {
               return DropdownMenuItem<CategoryEntity>(
                 value: category,
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.category,
-                      size: 20,
-                      color: Colors.teal.withValues(alpha: 0.7),
+                    Text(
+                      category.name,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            category.name,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          Text(
-                            '${category.productCount} products',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                    Text(
+                      '${category.productCount} products',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
