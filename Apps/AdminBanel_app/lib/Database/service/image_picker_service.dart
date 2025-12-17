@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ImagePickerService {
   static final ImagePicker _picker = ImagePicker();
@@ -43,9 +44,22 @@ class ImagePickerService {
   }
 
   /// اختيار صورة (يعمل على كل المنصات)
-  static Future<File?> pickImage() async {
+  static Future<dynamic> pickImage() async {
     try {
-      return await pickImageFromGallery();
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return null;
+
+      if (kIsWeb) {
+        return await pickedFile.readAsBytes();
+      } else {
+        return File(pickedFile.path);
+      }
     } catch (e) {
       throw Exception('Image selection failed: $e');
     }

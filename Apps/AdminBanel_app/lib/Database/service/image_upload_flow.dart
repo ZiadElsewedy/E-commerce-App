@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'cloudinary_service.dart';
 import 'firestore_image_service.dart';
 
 /// رفع وحفظ الصورة في Cloudinary و Firestore
+/// يدعم جميع المنصات: Web (Uint8List), Mobile/Desktop (File)
 Future<String> uploadAndSaveImage({
-  required Future<File?> Function() pickImage,
+  required Future<dynamic> Function() pickImage,
   required String cloudinaryFolder,
   required String firestoreCollection,
   required String docId,
