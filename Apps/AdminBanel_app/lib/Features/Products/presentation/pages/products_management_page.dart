@@ -4,10 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_ui/app_theme.dart';
 import '../cubit/products_cubit.dart';
 import '../cubit/products_states.dart';
+import '../cubit/product_image_cubit.dart';
+import '../cubit/product_image_states.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../../Categories/presentation/cubit/categories_cubit.dart';
 import '../../../Categories/presentation/cubit/categories_states.dart';
 import '../../../Categories/domain/entities/category_entity.dart';
+import '../../../../Database/service/image_picker_service.dart';
+import '../../../../Database/service/cloudinary_service.dart';
+import '../../../../Database/service/firestore_image_service.dart';
 
 /// Products Management Page
 /// Admin page for managing products (CRUD operations)
@@ -750,11 +755,14 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
   late TextEditingController _imageUrlController;
   
   bool _isEdit = false;
+  bool _isUploadingImage = false;
+  late ProductImageCubit _productImageCubit;
 
   @override
   void initState() {
     super.initState();
     _isEdit = widget.product != null;
+    _productImageCubit = ProductImageCubit();
     _nameController = TextEditingController(text: widget.product?.name ?? '');
     _descController = TextEditingController(text: widget.product?.description ?? '');
     _priceController = TextEditingController(text: widget.product?.price.toString() ?? '');
@@ -771,6 +779,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     _priceController.dispose();
     _stockController.dispose();
     _imageUrlController.dispose();
+    _productImageCubit.close();
     super.dispose();
   }
 
@@ -943,16 +952,120 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Image URL
-                      TextFormField(
-                        controller: _imageUrlController,
-                        decoration: const InputDecoration(
-                          labelText: 'Image URL (Optional)',
-                          hintText: 'https://example.com/image.jpg',
-                          prefixIcon: Icon(Icons.image),
-                          border: OutlineInputBorder(),
-                        ),
+                      // Image URL with Upload Button
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _imageUrlController,
+                              decoration: const InputDecoration(
+                                labelText: 'Image URL (Optional)',
+                                hintText: 'https://example.com/image.jpg',
+                                prefixIcon: Icon(Icons.image),
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLines: 2,
+                              minLines: 1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          BlocConsumer<ProductImageCubit, ProductImageState>(
+                            bloc: _productImageCubit,
+                            listener: (context, state) {
+                              if (state is ProductImageUploaded) {
+                                setState(() {
+                                  _imageUrlController.text = state.imageUrl;
+                                  _isUploadingImage = false;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(state.message),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              } else if (state is ProductImageError) {
+                                setState(() {
+                                  _isUploadingImage = false;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(state.errorMessage),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              } else if (state is ProductImageLoading) {
+                                setState(() {
+                                  _isUploadingImage = true;
+                                });
+                              }
+                            },
+                            builder: (context, state) {
+                              return Column(
+                                children: [
+                                  const SizedBox(height: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: _isUploadingImage
+                                        ? null
+                                        : () => _uploadProductImage(),
+                                    icon: _isUploadingImage
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : const Icon(Icons.upload_file, size: 20),
+                                    label: const Text('Upload'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
                       ),
+                      if (_imageUrlController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              _imageUrlController.text,
+                              height: 120,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 120,
+                                  color: Colors.grey[300],
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                  ),
+                                );
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  height: 120,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1015,6 +1128,75 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
 
       widget.onSubmit(product);
       Navigator.pop(context);
+    }
+  }
+
+  /// رفع الصورة إلى Cloudinary
+  Future<void> _uploadProductImage() async {
+    setState(() {
+      _isUploadingImage = true;
+    });
+
+    try {
+      // اختيار الصورة
+      final imageFile = await ImagePickerService.pickImage();
+      
+      if (imageFile == null) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No image selected'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // رفع الصورة إلى Cloudinary فقط
+      final cloudinaryService = CloudinaryService();
+      final imageUrl = await cloudinaryService.uploadImage(
+        imageFile: imageFile,
+        folder: 'products',
+      );
+
+      // تحديث حقل الصورة
+      setState(() {
+        _imageUrlController.text = imageUrl;
+        _isUploadingImage = false;
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Image uploaded successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // إذا كان في وضع التعديل، حفظ الرابط في Firestore
+      if (_isEdit && widget.product != null) {
+        final firestoreService = FirestoreImageService();
+        await firestoreService.updateImageUrl(
+          collection: 'products',
+          docId: widget.product!.id,
+          imageUrl: imageUrl,
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+      });
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Upload failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

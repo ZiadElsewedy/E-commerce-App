@@ -41,6 +41,9 @@ dependencies:
   google_sign_in: ^6.2.1
   shared_ui:
     path: ../packages/shared_ui
+  http: ^1.2.0
+  image_picker: ^1.0.7
+  
 
 
 dev_dependencies:
