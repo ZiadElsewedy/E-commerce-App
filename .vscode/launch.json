@@ -1,0 +1,68 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "AdminBanel_app",
+            "cwd": "Apps\\AdminBanel_app",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "AdminBanel_app (profile mode)",
+            "cwd": "Apps\\AdminBanel_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "AdminBanel_app (release mode)",
+            "cwd": "Apps\\AdminBanel_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "customer_app",
+            "cwd": "Apps\\customer_app",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "customer_app (profile mode)",
+            "cwd": "Apps\\customer_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "customer_app (release mode)",
+            "cwd": "Apps\\customer_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "shared_ui",
+            "cwd": "Apps\\packages\\shared_ui",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "shared_ui (profile mode)",
+            "cwd": "Apps\\packages\\shared_ui",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "shared_ui (release mode)",
+            "cwd": "Apps\\packages\\shared_ui",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
