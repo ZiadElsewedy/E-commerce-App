@@ -5,6 +5,8 @@ import '../cubit/categories_states.dart';
 import '../../domain/entities/category_entity.dart';
 import 'category_products_page.dart';
 import 'uncategorized_products_page.dart';
+import '../widgets/category_form_sheet.dart';
+import '../widgets/category_card_widget.dart';
 
 /// Categories Management Page
 /// Admin page for managing product categories (CRUD operations)
@@ -98,12 +100,14 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
           return _buildEmptyState();
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          _showAddCategoryDialog();
+          _showAddCategorySheet();
         },
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.grey.shade700,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Category'),
       ),
     );
   }
@@ -138,12 +142,12 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
           const SizedBox(height: 30),
           ElevatedButton.icon(
             onPressed: () {
-              _showAddCategoryDialog();
+              _showAddCategorySheet();
             },
             icon: const Icon(Icons.add),
             label: const Text('Add Category'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
+              backgroundColor: Colors.grey.shade700,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -154,124 +158,28 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
   }
 
   Widget _buildCategoriesList(List<CategoryEntity> categories) {
-    return ListView.builder(
+    return GridView.builder(
       padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.65, // Increased height for more space
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
         final category = categories[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => CategoryProductsPage(category: category),
-                ),
-              );
-            },
-            leading: CircleAvatar(
-              backgroundColor: Colors.teal.withValues(alpha: 0.1),
-              child: const Icon(Icons.category, color: Colors.teal),
-            ),
-            title: Text(
-              category.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(category.description),
-                const SizedBox(height: 4),
-                Text(
-                  '${category.productCount} products',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            isThreeLine: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (category.isActive)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'Active',
-                      style: TextStyle(color: Colors.green, fontSize: 12),
-                    ),
-                  ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'view') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => CategoryProductsPage(category: category),
-                        ),
-                      );
-                    } else if (value == 'edit') {
-                      _showEditCategoryDialog(category);
-                    } else if (value == 'toggle') {
-                      context.read<CategoriesCubit>().toggleCategoryStatus(
-                            category.id,
-                            !category.isActive,
-                          );
-                    } else if (value == 'delete') {
-                      _showDeleteConfirmation(category);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'view',
-                      child: Row(
-                        children: [
-                          Icon(Icons.inventory_2, size: 20, color: Colors.teal),
-                          SizedBox(width: 8),
-                          Text('View Products'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'toggle',
-                      child: Row(
-                        children: [
-                          Icon(
-                            category.isActive ? Icons.visibility_off : Icons.visibility,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(category.isActive ? 'Deactivate' : 'Activate'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        return CategoryCardWidget(
+          category: category,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CategoryProductsPage(category: category),
+              ),
+            );
+          },
+          onEdit: () => _showEditCategorySheet(category),
+          onDelete: () => _showDeleteConfirmation(category),
         );
       },
     );
@@ -352,152 +260,29 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
     );
   }
 
-  void _showAddCategoryDialog() {
-    final nameController = TextEditingController();
-    final descController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
+  void _showAddCategorySheet() {
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add New Category'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Category Name',
-                  hintText: 'e.g., Electronics',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter category name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: descController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'Category description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter description';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final category = CategoryEntity(
-                  id: '', // Will be generated by Firestore
-                  name: nameController.text.trim(),
-                  description: descController.text.trim(),
-                  isActive: true,
-                  createdAt: DateTime.now(),
-                );
-                context.read<CategoriesCubit>().createCategory(category);
-                Navigator.pop(dialogContext);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Add'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CategoryFormSheet(
+        onSubmit: (category) {
+          this.context.read<CategoriesCubit>().createCategory(category);
+        },
       ),
     );
   }
 
-  void _showEditCategoryDialog(CategoryEntity category) {
-    final nameController = TextEditingController(text: category.name);
-    final descController = TextEditingController(text: category.description);
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
+  void _showEditCategorySheet(CategoryEntity category) {
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Category'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Category Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter category name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: descController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter description';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final updatedCategory = category.copyWith(
-                  name: nameController.text.trim(),
-                  description: descController.text.trim(),
-                  updatedAt: DateTime.now(),
-                );
-                context.read<CategoriesCubit>().updateCategory(updatedCategory);
-                Navigator.pop(dialogContext);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Update'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CategoryFormSheet(
+        category: category,
+        onSubmit: (updatedCategory) {
+          this.context.read<CategoriesCubit>().updateCategory(updatedCategory);
+        },
       ),
     );
   }
