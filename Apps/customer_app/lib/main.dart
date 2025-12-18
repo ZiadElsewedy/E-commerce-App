@@ -1,4 +1,6 @@
 import 'package:ecommerceapp/Features/Home/HomeScreen.dart';
+import 'package:ecommerceapp/Features/Home/presentation/cubit/home_cubit.dart';
+import 'package:ecommerceapp/Features/Home/data/firebase_home_repository.dart';
 import 'package:ecommerceapp/Features/auth/Presentation/cubits/authCubit.dart';
 import 'package:ecommerceapp/Features/auth/Presentation/cubits/authStates.dart' show AuthStates, Authenticated, Unauthenticated, EmailVerificationPending, AuthError, AuthLoading, AuthInitial;
 import 'package:ecommerceapp/Features/auth/data/Firebase_auth_repo.dart' show FirebaseAuthRepository;
@@ -24,11 +26,14 @@ class MyApp extends StatelessWidget {
   
    MyApp({super.key});
  final  authRepository = FirebaseAuthRepository();
+ final homeRepository = FirebaseHomeRepository();
+ 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => AuthCubit(authRepository: authRepository) ..checkAuthStatus()),
+        BlocProvider(create: (context) => HomeCubit(repository: homeRepository)),
       ],
       child: MaterialApp(   
       debugShowCheckedModeBanner: false,

@@ -1,372 +1,364 @@
 // home screen for the app
-import 'package:ecommerceapp/Features/auth/Presentation/cubits/authCubit.dart';
-import 'package:ecommerceapp/Features/auth/Presentation/cubits/authStates.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'presentation/cubit/home_cubit.dart';
+import 'presentation/cubit/home_state.dart';
+import 'presentation/widgets/banner_carousel.dart';
+import 'presentation/widgets/category_list.dart';
+import 'presentation/widgets/product_card.dart';
+import '../Product/presentation/pages/product_details_page.dart';
+import '../Product/presentation/cubit/product_cubit.dart';
+import '../Product/data/firebase_product_repository.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch home data on init
+    context.read<HomeCubit>().fetchHomeData();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: Row(
+          children: [
+            Icon(
+              Icons.storefront_rounded,
+              color: Colors.grey[800],
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'E-Shop',
+              style: TextStyle(
+                color: Colors.grey[900],
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: () {
-              context.read<AuthCubit>().logout();
+              // TODO: Navigate to search
             },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
+            icon: Icon(Icons.search, color: Colors.grey[800]),
+          ),
+          IconButton(
+            onPressed: () {
+              // TODO: Navigate to cart
+            },
+            icon: Badge(
+              label: const Text('3'),
+              child: Icon(Icons.shopping_cart_outlined, color: Colors.grey[800]),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              // TODO: Navigate to notifications
+            },
+            icon: Icon(Icons.notifications_outlined, color: Colors.grey[800]),
           ),
         ],
       ),
-      body: BlocBuilder<AuthCubit, AuthStates>(
+      body: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
-          if (state is Authenticated) {
-            final user = state.user;
-            
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  // Profile Picture / Avatar
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.secondary,
-                        ],
+          if (state is HomeLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is HomeError) {
+            return _buildErrorView(state.message);
+          }
+
+          if (state is HomeLoaded) {
+            return RefreshIndicator(
+              onRefresh: () => context.read<HomeCubit>().refreshHomeData(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    
+                    // Search Bar
+                    _buildSearchBar(),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // Banners Carousel
+                    if (state.banners.isNotEmpty)
+                      BannerCarousel(
+                        banners: state.banners,
+                        onBannerTap: (banner) {
+                          // TODO: Handle banner tap
+                        },
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        _getInitials(user.name ?? user.email),
-                        style: const TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Categories
+                    if (state.categories.isNotEmpty)
+                      CategoryList(
+                        categories: state.categories,
+                        onCategoryTap: (category) {
+                          // TODO: Navigate to category products
+                        },
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // User Name
-                  Text(
-                    user.name ?? 'User',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // User ID Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'ID: ${user.userId.substring(0, 8)}...',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Deals Section
+                    if (state.dealsProducts.isNotEmpty) ...[
+                      _buildSectionHeader(
+                        title: '⚡ Flash Deals',
+                        subtitle: 'Limited time offers',
+                        onViewAll: () {
+                          // TODO: Navigate to all deals
+                        },
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // User Details Card
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Section Header
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Personal Information',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const Divider(height: 1),
-                        
-                        // Email
-                        _buildInfoTile(
-                          icon: Icons.email_outlined,
-                          label: 'Email',
-                          value: user.email,
-                          theme: theme,
-                        ),
-                        
-                        // Name
-                        if (user.name != null)
-                          _buildInfoTile(
-                            icon: Icons.badge_outlined,
-                            label: 'Full Name',
-                            value: user.name!,
-                            theme: theme,
-                          ),
-                        
-                        // Phone
-                        if (user.phone != null && user.phone!.isNotEmpty)
-                          _buildInfoTile(
-                            icon: Icons.phone_outlined,
-                            label: 'Phone',
-                            value: user.phone!,
-                            theme: theme,
-                          ),
-                        
-                        // User ID (full)
-                        _buildInfoTile(
-                          icon: Icons.fingerprint,
-                          label: 'User ID',
-                          value: user.userId,
-                          theme: theme,
-                          isLast: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // Stats Cards (Optional - for future features)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.shopping_bag_outlined,
-                          value: '0',
-                          label: 'Orders',
-                          theme: theme,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.favorite_outline,
-                          value: '0',
-                          label: 'Favorites',
-                          theme: theme,
-                        ),
-                      ),
+                      const SizedBox(height: 12),
+                      _buildHorizontalProductList(state.dealsProducts),
+                      const SizedBox(height: 24),
                     ],
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // Logout Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        context.read<AuthCubit>().logout();
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text(
-                        'LOGOUT',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
+                    
+                    // Featured Products
+                    if (state.featuredProducts.isNotEmpty) ...[
+                      _buildSectionHeader(
+                        title: '⭐ Featured Products',
+                        subtitle: 'Handpicked for you',
+                        onViewAll: () {
+                          // TODO: Navigate to featured products
+                        },
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade400,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
+                      const SizedBox(height: 12),
+                      _buildProductGrid(state.featuredProducts),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // New Arrivals
+                    if (state.newArrivals.isNotEmpty) ...[
+                      _buildSectionHeader(
+                        title: '🆕 New Arrivals',
+                        subtitle: 'Just landed',
+                        onViewAll: () {
+                          // TODO: Navigate to new arrivals
+                        },
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(height: 12),
+                      _buildHorizontalProductList(state.newArrivals),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // Bottom Padding
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             );
           }
-          
-          return const Center(
-            child: CircularProgressIndicator(),
+
+          return const Center(child: CircularProgressIndicator());
+        },
+      ),
+    );
+  }
+
+  // Search Bar
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: Colors.grey[600]),
+            const SizedBox(width: 12),
+            Text(
+              'Search for products...',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Section Header
+  Widget _buildSectionHeader({
+    required String title,
+    String? subtitle,
+    VoidCallback? onViewAll,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (onViewAll != null)
+            TextButton(
+              onPressed: onViewAll,
+              child: Text(
+                'View All',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Horizontal Product List
+  Widget _buildHorizontalProductList(List products) {
+    return SizedBox(
+      height: 260,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 160,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            child: ProductCard(
+              product: products[index],
+              onTap: () {
+                _navigateToProduct(products[index].id);
+              },
+            ),
           );
         },
       ),
     );
   }
-  
-  // Helper method to get user initials
-  String _getInitials(String name) {
-    if (name.isEmpty) return 'U';
-    
-    List<String> nameParts = name.trim().split(' ');
-    if (nameParts.length == 1) {
-      return nameParts[0][0].toUpperCase();
-    } else {
-      return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
-    }
-  }
-  
-  // Helper widget to build info tiles
-  Widget _buildInfoTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required ThemeData theme,
-    bool isLast = false,
-  }) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (!isLast) const Divider(height: 1),
-      ],
+
+  // Product Grid
+  Widget _buildProductGrid(List products) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.7,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: products.length > 6 ? 6 : products.length,
+      itemBuilder: (context, index) {
+        return ProductCard(
+          product: products[index],
+          onTap: () {
+            _navigateToProduct(products[index].id);
+          },
+        );
+      },
     );
   }
-  
-  // Helper widget to build stat cards
-  Widget _buildStatCard({
-    required IconData icon,
-    required String value,
-    required String label,
-    required ThemeData theme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
+
+  // Navigate to Product Details
+  void _navigateToProduct(String productId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider(
+          create: (context) => ProductCubit(
+            repository: FirebaseProductRepository(),
           ),
-        ],
+          child: ProductDetailsPage(productId: productId),
+        ),
       ),
+    );
+  }
+
+  // Error View
+  Widget _buildErrorView(String message) {
+    return Center(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            icon,
-            size: 32,
-            color: theme.colorScheme.primary,
+            Icons.error_outline,
+            size: 80,
+            color: Colors.grey[400],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
-            value,
+            'Oops! Something went wrong',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+              color: Colors.grey[700],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            label,
+            message,
             style: TextStyle(
-              fontSize: 12,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              context.read<HomeCubit>().fetchHomeData();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[700],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
