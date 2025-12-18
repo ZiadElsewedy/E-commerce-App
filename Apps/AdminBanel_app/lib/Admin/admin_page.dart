@@ -1,11 +1,14 @@
 import 'package:ecommerceapp/Admin/presentation/widgets/buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../Features/Products/presentation/pages/products_management_page.dart';
 import '../Features/Banners/presentation/pages/banners_management_page.dart';
 import '../Features/Promos/presentation/pages/promos_management_page.dart';
 import '../Features/Coupons/presentation/pages/coupons_management_page.dart';
 import '../Features/Categories/presentation/pages/categories_management_page.dart';
+import '../Features/Promos/presentation/cubit/banners_cubit.dart';
+import '../Features/Promos/data/firebase_banner_repository.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
@@ -188,7 +191,12 @@ class AdminPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const BannersManagementPage(),
+                    builder: (context) => BlocProvider(
+                      create: (context) => BannersCubit(
+                        bannerRepository: FirebaseBannerRepository(),
+                      ),
+                      child: const BannersManagementPage(),
+                    ),
                   ),
                 );
               },
