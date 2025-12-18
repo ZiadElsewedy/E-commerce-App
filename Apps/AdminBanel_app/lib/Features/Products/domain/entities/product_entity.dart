@@ -1,3 +1,5 @@
+import 'product_variant_entity.dart';
+
 /// Product Entity - Domain Layer
 /// Represents a product in the e-commerce app
 class ProductEntity {
@@ -16,6 +18,8 @@ class ProductEntity {
   final DateTime? updatedAt;
   final Map<String, dynamic>? specifications; // e.g., size, color, material
   final List<String>? tags;
+  final bool hasVariants; // هل المنتج له مقاسات/أحجام
+  final List<ProductVariantEntity>? variants; // قائمة المقاسات والكميات
 
   ProductEntity({
     required this.id,
@@ -33,6 +37,8 @@ class ProductEntity {
     this.updatedAt,
     this.specifications,
     this.tags,
+    this.hasVariants = false,
+    this.variants,
   });
 
   /// Convert entity to JSON
@@ -53,6 +59,8 @@ class ProductEntity {
       'updatedAt': updatedAt?.toIso8601String(),
       'specifications': specifications,
       'tags': tags,
+      'hasVariants': hasVariants,
+      'variants': variants?.map((v) => v.toJson()).toList(),
     };
   }
 
@@ -78,6 +86,12 @@ class ProductEntity {
           : null,
       specifications: json['specifications'] as Map<String, dynamic>?,
       tags: (json['tags'] as List<dynamic>?)?.cast<String>(),
+      hasVariants: json['hasVariants'] as bool? ?? false,
+      variants: json['variants'] != null
+          ? (json['variants'] as List<dynamic>)
+              .map((v) => ProductVariantEntity.fromJson(v as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
@@ -98,6 +112,8 @@ class ProductEntity {
     DateTime? updatedAt,
     Map<String, dynamic>? specifications,
     List<String>? tags,
+    bool? hasVariants,
+    List<ProductVariantEntity>? variants,
   }) {
     return ProductEntity(
       id: id ?? this.id,
@@ -115,6 +131,8 @@ class ProductEntity {
       updatedAt: updatedAt ?? this.updatedAt,
       specifications: specifications ?? this.specifications,
       tags: tags ?? this.tags,
+      hasVariants: hasVariants ?? this.hasVariants,
+      variants: variants ?? this.variants,
     );
   }
 
@@ -131,9 +149,29 @@ class ProductEntity {
   }
 
   /// Check if product is in stock
-  bool get isInStock => stockQuantity > 0;
+  bool get isInStock {
+    if (hasVariants && variants != null) {
+      return variants!.any((v) => v.quantity > 0);
+    }
+    return stockQuantity > 0;
+  }
 
   /// Check if product is low in stock (less than 10 items)
-  bool get isLowStock => stockQuantity > 0 && stockQuantity < 10;
+  bool get isLowStock {
+    if (hasVariants && variants != null) {
+      final totalStock = variants!.fold<int>(0, (sum, v) => sum + v.quantity);
+      return totalStock > 0 && totalStock < 10;
+    }
+    return stockQuantity > 0 && stockQuantity < 10;
+  }
+
+  /// حساب إجمالي المخزون (للمنتجات ذات المقاسات)
+  /// Calculate total stock quantity (for products with variants)
+  int get totalStock {
+    if (hasVariants && variants != null) {
+      return variants!.fold<int>(0, (sum, v) => sum + v.quantity);
+    }
+    return stockQuantity;
+  }
 }
 

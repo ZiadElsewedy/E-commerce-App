@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_ui/app_theme.dart';
 import '../cubit/products_cubit.dart';
 import '../cubit/products_states.dart';
 import '../../domain/entities/product_entity.dart';
+import 'product_detail_page.dart';
+import '../widgets/product_list_item.dart';
+import '../widgets/product_form_sheet.dart';
 import '../../../Categories/presentation/cubit/categories_cubit.dart';
 import '../../../Categories/presentation/cubit/categories_states.dart';
 import '../../../Categories/domain/entities/category_entity.dart';
+import 'package:shared_ui/app_theme.dart';
 
 /// Products Management Page
 /// Admin page for managing products (CRUD operations)
@@ -125,123 +127,42 @@ class _ProductsManagementPageState extends State<ProductsManagementPage> {
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.withValues(alpha: 0.1),
-              child: const Icon(Icons.inventory_2, color: Colors.blue),
-            ),
-            title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('\$${product.price.toStringAsFixed(2)}'),
-                const SizedBox(height: 4),
-                Text(
-                  'Stock: ${product.stockQuantity} • ${product.categoryName}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            isThreeLine: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (product.isFeatured)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    margin: const EdgeInsets.only(right: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Icon(Icons.star, color: Colors.amber, size: 16),
-                  ),
-                // Category Indicator/Button
-                if (product.categoryId == 'uncategorized' || product.categoryId.isEmpty)
-                  Container(
-                    margin: const EdgeInsets.only(right: 4),
-                    child: IconButton(
-                      icon: const Icon(Icons.category_outlined, color: Colors.orange),
-                      tooltip: 'Assign Category',
-                      onPressed: () => _showAssignCategoryDialog(product),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    margin: const EdgeInsets.only(right: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.teal.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.teal.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.category, color: Colors.teal, size: 14),
-                        if (!AppTheme.isMobile(context)) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            product.categoryName,
-                            style: const TextStyle(
-                              color: Colors.teal,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                PopupMenuButton<String>(
-                  onSelected: (value) => _handleMenuAction(value, product),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'assign',
-                      child: Row(
-                        children: [
-                          Icon(Icons.category, size: 20, color: Colors.teal),
-                          SizedBox(width: 8),
-                          Text('Assign Category'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                    PopupMenuItem(
-                      value: 'toggle',
-                      child: Text(product.isActive ? 'Deactivate' : 'Activate'),
-                    ),
-                    PopupMenuItem(
-                      value: 'feature',
-                      child: Text(product.isFeatured ? 'Unfeature' : 'Feature'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        return ProductListItem(
+          product: product,
+          onTap: () => _navigateToProductDetail(product),
+          onMenuAction: (value) => _handleMenuAction(value, product),
         );
       },
     );
   }
 
+  void _navigateToProductDetail(ProductEntity product) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BlocProvider.value(
+          value: context.read<ProductsCubit>(),
+          child: ProductDetailPage(product: product),
+        ),
+      ),
+    );
+  }
+
   void _handleMenuAction(String value, ProductEntity product) {
-    if (value == 'assign') {
-      _showAssignCategoryDialog(product);
+    if (value == 'view') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BlocProvider.value(
+            value: context.read<ProductsCubit>(),
+            child: ProductDetailPage(product: product),
+          ),
+        ),
+      );
     } else if (value == 'edit') {
       _showEditProductDialog(product);
     } else if (value == 'toggle') {
       context.read<ProductsCubit>().updateProduct(product.copyWith(isActive: !product.isActive));
-    } else if (value == 'feature') {
-      context.read<ProductsCubit>().updateProduct(product.copyWith(isFeatured: !product.isFeatured));
     } else if (value == 'delete') {
       _showDeleteConfirmation(product);
     }
@@ -316,10 +237,11 @@ class _ProductsManagementPageState extends State<ProductsManagementPage> {
   }
 
   void _showAddProductDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => _ProductFormDialog(
-        title: 'Add New Product',
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ProductFormSheet(
         onSubmit: (product) {
           context.read<ProductsCubit>().createProduct(product);
         },
@@ -328,10 +250,11 @@ class _ProductsManagementPageState extends State<ProductsManagementPage> {
   }
 
   void _showEditProductDialog(ProductEntity product) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => _ProductFormDialog(
-        title: 'Edit Product',
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ProductFormSheet(
         product: product,
         onSubmit: (updatedProduct) {
           context.read<ProductsCubit>().updateProduct(updatedProduct);
@@ -364,18 +287,6 @@ class _ProductsManagementPageState extends State<ProductsManagementPage> {
     );
   }
 
-  void _showAssignCategoryDialog(ProductEntity product) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => _AssignCategoryDialog(
-        product: product,
-        onCategoryAssigned: () {
-          context.read<ProductsCubit>().fetchAllProducts();
-          context.read<CategoriesCubit>().fetchAllCategories();
-        },
-      ),
-    );
-  }
 }
 
 /// Dialog to assign a category to a product
@@ -720,301 +631,6 @@ class _AssignCategoryDialogState extends State<_AssignCategoryDialog> {
             .length;
         await categoriesCubit.updateProductCount(oldCategoryId, oldCategoryProductCount);
       }
-    }
-  }
-}
-
-/// Separate StatefulWidget for Product Form Dialog
-/// This isolates the form state and prevents RenderFlex issues
-class _ProductFormDialog extends StatefulWidget {
-  final String title;
-  final ProductEntity? product;
-  final Function(ProductEntity) onSubmit;
-
-  const _ProductFormDialog({
-    required this.title,
-    this.product,
-    required this.onSubmit,
-  });
-
-  @override
-  State<_ProductFormDialog> createState() => _ProductFormDialogState();
-}
-
-class _ProductFormDialogState extends State<_ProductFormDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _descController;
-  late TextEditingController _priceController;
-  late TextEditingController _stockController;
-  late TextEditingController _imageUrlController;
-  
-  bool _isEdit = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isEdit = widget.product != null;
-    _nameController = TextEditingController(text: widget.product?.name ?? '');
-    _descController = TextEditingController(text: widget.product?.description ?? '');
-    _priceController = TextEditingController(text: widget.product?.price.toString() ?? '');
-    _stockController = TextEditingController(text: widget.product?.stockQuantity.toString() ?? '');
-    _imageUrlController = TextEditingController(
-      text: widget.product?.imageUrls.isNotEmpty == true ? widget.product!.imageUrls.first : '',
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descController.dispose();
-    _priceController.dispose();
-    _stockController.dispose();
-    _imageUrlController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final dialogWidth = screenWidth < 600 ? screenWidth * 0.9 : 500.0;
-
-    return Dialog(
-      child: Container(
-        width: dialogWidth,
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Form Content
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Product Name
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Product Name *',
-                          hintText: 'e.g., Wireless Headphones',
-                          prefixIcon: Icon(Icons.inventory_2),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter product name';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Description
-                      TextFormField(
-                        controller: _descController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description *',
-                          hintText: 'Product description',
-                          prefixIcon: Icon(Icons.description),
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter description';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Price and Stock
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _priceController,
-                              decoration: const InputDecoration(
-                                labelText: 'Price *',
-                                hintText: '0.00',
-                                prefixIcon: Icon(Icons.attach_money),
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                              ],
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Required';
-                                }
-                                if (double.tryParse(value) == null) {
-                                  return 'Invalid';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _stockController,
-                              decoration: const InputDecoration(
-                                labelText: 'Stock *',
-                                hintText: '0',
-                                prefixIcon: Icon(Icons.inventory),
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Required';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Info Card
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Categories can be assigned from the Categories Management page.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue[900],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Image URL
-                      TextFormField(
-                        controller: _imageUrlController,
-                        decoration: const InputDecoration(
-                          labelText: 'Image URL (Optional)',
-                          hintText: 'https://example.com/image.jpg',
-                          prefixIcon: Icon(Icons.image),
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Actions
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(_isEdit ? 'Update' : 'Add Product'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final product = ProductEntity(
-        id: widget.product?.id ?? '',
-        name: _nameController.text.trim(),
-        description: _descController.text.trim(),
-        price: double.parse(_priceController.text.trim()),
-        categoryId: widget.product?.categoryId ?? 'uncategorized',
-        categoryName: widget.product?.categoryName ?? 'Uncategorized',
-        stockQuantity: int.parse(_stockController.text.trim()),
-        imageUrls: _imageUrlController.text.isNotEmpty 
-            ? [_imageUrlController.text.trim()] 
-            : [],
-        isActive: widget.product?.isActive ?? true,
-        isFeatured: widget.product?.isFeatured ?? false,
-        createdAt: widget.product?.createdAt ?? DateTime.now(),
-        updatedAt: _isEdit ? DateTime.now() : null,
-      );
-
-      widget.onSubmit(product);
-      Navigator.pop(context);
     }
   }
 }
