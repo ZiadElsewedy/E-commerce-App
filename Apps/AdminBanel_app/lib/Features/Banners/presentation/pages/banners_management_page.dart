@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_ui/app_theme.dart';
-import '../cubit/banners_cubit.dart';
-import '../cubit/banners_states.dart';
-import '../../domain/entities/banner_entity.dart';
+import '../../../Promos/presentation/cubit/banners_cubit.dart';
+import '../../../Promos/presentation/cubit/banners_states.dart';
+import '../../../Promos/domain/entities/banner_entity.dart';
+import '../../../Promos/presentation/widgets/banner_card_widget.dart';
+import '../../../Promos/presentation/widgets/banner_form_sheet.dart';
+import '../../../Categories/presentation/cubit/categories_cubit.dart';
+import '../../../Categories/data/firebase_category_repository.dart';
 
 /// Banners Management Page
 /// Admin page for managing promotional banners (CRUD operations)
@@ -144,112 +147,23 @@ class _BannersManagementPageState extends State<BannersManagementPage> {
   }
 
   Widget _buildBannersList(List banners) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: banners.length,
-      itemBuilder: (context, index) {
-        final banner = banners[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.orange.withValues(alpha: 0.1),
-              child: const Icon(Icons.view_carousel, color: Colors.orange),
-            ),
-            title: Text(banner.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(banner.description),
-                const SizedBox(height: 4),
-                Text(
-                  'Priority: ${banner.priority}${banner.expiresAt != null ? ' • Expires: ${banner.expiresAt!.toString().split(' ')[0]}' : ''}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+    return RefreshIndicator(
+      onRefresh: () => context.read<BannersCubit>().fetchAllBanners(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: banners.length,
+        itemBuilder: (context, index) {
+          final banner = banners[index];
+          return BannerCardWidget(
+            banner: banner,
+            onEdit: () => _showEditBannerDialog(banner),
+            onDelete: () => _showDeleteConfirmation(banner),
+            onToggleStatus: () => context.read<BannersCubit>().updateBanner(
+                  banner.copyWith(isActive: !banner.isActive),
                 ),
-              ],
-            ),
-            isThreeLine: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (banner.isActive && !banner.isExpired)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'Active',
-                      style: TextStyle(color: Colors.green, fontSize: 12),
-                    ),
-                  ),
-                if (banner.isExpired)
-                  Container(
-                    margin: const EdgeInsets.only(left: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'Expired',
-                      style: TextStyle(color: Colors.red, fontSize: 12),
-                    ),
-                  ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      _showEditBannerDialog(banner);
-                    } else if (value == 'toggle') {
-                      context.read<BannersCubit>().updateBanner(
-                            banner.copyWith(isActive: !banner.isActive),
-                          );
-                    } else if (value == 'delete') {
-                      _showDeleteConfirmation(banner);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'toggle',
-                      child: Row(
-                        children: [
-                          Icon(
-                            banner.isActive ? Icons.visibility_off : Icons.visibility,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(banner.isActive ? 'Deactivate' : 'Activate'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -329,302 +243,37 @@ class _BannersManagementPageState extends State<BannersManagementPage> {
   }
 
   void _showAddBannerDialog() {
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-    final imageUrlController = TextEditingController();
-    final linkUrlController = TextEditingController();
-    final priorityController = TextEditingController(text: '0');
-    final formKey = GlobalKey<FormState>();
-    DateTime? expiresAt;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add New Banner'),
-          content: SizedBox(
-            width: AppTheme.getDialogWidth(context),
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Banner Title *',
-                        hintText: 'e.g., Summer Sale 2024',
-                        prefixIcon: Icon(Icons.title),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter banner title';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: descController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description *',
-                        hintText: 'Banner description',
-                        prefixIcon: Icon(Icons.description),
-                      ),
-                      maxLines: 2,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter description';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: imageUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Image URL *',
-                        hintText: 'https://example.com/banner.jpg',
-                        prefixIcon: Icon(Icons.image),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter image URL';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: linkUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Link URL (Optional)',
-                        hintText: 'https://example.com/products',
-                        prefixIcon: Icon(Icons.link),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: priorityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Priority',
-                        hintText: '0 (higher = shows first)',
-                        prefixIcon: Icon(Icons.star),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Expiration Date (Optional)'),
-                      subtitle: Text(
-                        expiresAt != null 
-                            ? expiresAt.toString().split(' ')[0]
-                            : 'No expiration',
-                      ),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now().add(const Duration(days: 30)),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (date != null) {
-                          setState(() => expiresAt = date);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  final banner = BannerEntity(
-                    id: '',
-                    title: titleController.text.trim(),
-                    description: descController.text.trim(),
-                    imageUrl: imageUrlController.text.trim(),
-                    linkUrl: linkUrlController.text.isNotEmpty 
-                        ? linkUrlController.text.trim() 
-                        : null,
-                    priority: int.tryParse(priorityController.text.trim()) ?? 0,
-                    isActive: true,
-                    createdAt: DateTime.now(),
-                    expiresAt: expiresAt,
-                  );
-                  this.context.read<BannersCubit>().createBanner(banner);
-                  Navigator.pop(dialogContext);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Add Banner'),
-            ),
-          ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BlocProvider(
+        create: (context) => CategoriesCubit(
+          categoryRepository: FirebaseCategoryRepository(),
+        ),
+        child: BannerFormSheet(
+          onSubmit: (banner) {
+            this.context.read<BannersCubit>().createBanner(banner);
+          },
         ),
       ),
     );
   }
 
   void _showEditBannerDialog(BannerEntity banner) {
-    final titleController = TextEditingController(text: banner.title);
-    final descController = TextEditingController(text: banner.description);
-    final imageUrlController = TextEditingController(text: banner.imageUrl);
-    final linkUrlController = TextEditingController(text: banner.linkUrl ?? '');
-    final priorityController = TextEditingController(text: banner.priority.toString());
-    final formKey = GlobalKey<FormState>();
-    DateTime? expiresAt = banner.expiresAt;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Banner'),
-          content: SizedBox(
-            width: AppTheme.getDialogWidth(context),
-            child: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Banner Title *',
-                        prefixIcon: Icon(Icons.title),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter banner title';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: descController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description *',
-                        prefixIcon: Icon(Icons.description),
-                      ),
-                      maxLines: 2,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter description';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: imageUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Image URL *',
-                        prefixIcon: Icon(Icons.image),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter image URL';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: linkUrlController,
-                      decoration: const InputDecoration(
-                        labelText: 'Link URL (Optional)',
-                        prefixIcon: Icon(Icons.link),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: priorityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Priority',
-                        prefixIcon: Icon(Icons.star),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Expiration Date'),
-                      subtitle: Text(
-                        expiresAt != null 
-                            ? expiresAt.toString().split(' ')[0]
-                            : 'No expiration',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (expiresAt != null)
-                            IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () => setState(() => expiresAt = null),
-                            ),
-                          const Icon(Icons.calendar_today),
-                        ],
-                      ),
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: expiresAt ?? DateTime.now().add(const Duration(days: 30)),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
-                        );
-                        if (date != null) {
-                          setState(() => expiresAt = date);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  final updatedBanner = banner.copyWith(
-                    title: titleController.text.trim(),
-                    description: descController.text.trim(),
-                    imageUrl: imageUrlController.text.trim(),
-                    linkUrl: linkUrlController.text.isNotEmpty 
-                        ? linkUrlController.text.trim() 
-                        : null,
-                    priority: int.tryParse(priorityController.text.trim()) ?? 0,
-                    expiresAt: expiresAt,
-                  );
-                  this.context.read<BannersCubit>().updateBanner(updatedBanner);
-                  Navigator.pop(dialogContext);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Update'),
-            ),
-          ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BlocProvider(
+        create: (context) => CategoriesCubit(
+          categoryRepository: FirebaseCategoryRepository(),
+        ),
+        child: BannerFormSheet(
+          banner: banner,
+          onSubmit: (updatedBanner) {
+            this.context.read<BannersCubit>().updateBanner(updatedBanner);
+          },
         ),
       ),
     );
