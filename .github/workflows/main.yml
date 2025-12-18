@@ -1,14 +1,18 @@
-name: Flutter CI (Tests Only)
+name: Flutter CI (Customer App - Tests Only)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Apps/customer_app
 
     steps:
       - name: Checkout repository
@@ -17,7 +21,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: "3.19.0"
 
       - name: Install dependencies
         run: flutter pub get
@@ -26,4 +30,5 @@ jobs:
         run: flutter analyze
 
       - name: Run tests
-        run: flutter test || echo "No tests found"
+        run: |
+          flutter test || echo "No tests found"
