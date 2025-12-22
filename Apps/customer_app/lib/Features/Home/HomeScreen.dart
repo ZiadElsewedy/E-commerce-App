@@ -9,6 +9,7 @@ import 'presentation/widgets/product_card.dart';
 import '../Product/presentation/pages/product_details_page.dart';
 import '../Product/presentation/cubit/product_cubit.dart';
 import '../Product/data/firebase_product_repository.dart';
+import '../Profile/Presentation/pages/profile_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -69,9 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             onPressed: () {
-              // TODO: Navigate to notifications
+              _navigateToProfile();
             },
-            icon: Icon(Icons.notifications_outlined, color: Colors.grey[800]),
+            icon: Icon(Icons.person_outline, color: Colors.grey[800]),
           ),
         ],
       ),
@@ -315,6 +316,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: ProductDetailsPage(productId: productId),
         ),
+      ),
+    );
+  }
+
+  // Navigate to Profile
+  void _navigateToProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ProfilePage(),
       ),
     );
   }

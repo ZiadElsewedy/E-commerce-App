@@ -1,10 +1,12 @@
 import 'package:ecommerceapp/Features/auth/Presentation/cubits/authCubit.dart';
 import 'package:ecommerceapp/Features/auth/Presentation/cubits/authStates.dart';
+import 'package:ecommerceapp/Features/Home/HomeScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widgets/textfield.dart';
 import '../widgets/validation.dart';
 import '../widgets/custom_button.dart';
+import 'EmailVerficationPage.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -88,9 +90,19 @@ class _RegisterPageState extends State<RegisterPage> {
         } else {
           setState(() => _isLoading = false);
         }
-        
-        // The main.dart BlocConsumer will handle navigation to email verification
-        // We just need to show local messages here
+
+        // Handle navigation based on auth state
+        if (state is Authenticated) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else if (state is EmailVerificationPending) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const EmailVerificationPage()),
+          );
+        }
+
+        // Show local messages
         if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
