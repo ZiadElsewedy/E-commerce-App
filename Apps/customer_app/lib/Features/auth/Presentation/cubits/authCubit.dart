@@ -45,10 +45,10 @@ class AuthCubit extends Cubit<AuthStates> {
     emit(AuthLoading());
     try {
       final user = await authRepository.loginwithEmailAndPassword(email, password);
-      
+
       // Check if email is verified
       final isVerified = await authRepository.isEmailVerified();
-      
+
       if (isVerified) {
         emit(Authenticated(user));
       } else {

@@ -39,6 +39,8 @@ dependencies:
   cloud_firestore: ^6.1.0
   flutter_bloc: ^9.1.1
   google_sign_in: ^6.2.1
+  http: ^1.2.0
+  image_picker: ^1.0.7
   shared_ui:
     path: ../packages/shared_ui
 
