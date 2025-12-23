@@ -29,13 +29,25 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text(
-          'Manage Categories',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Icon(Icons.category_outlined, color: Colors.white, size: 28),
+            const SizedBox(width: 12),
+            const Text(
+              'Category Management',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.black87,
         foregroundColor: Colors.white,
-        elevation: 2,
+        elevation: 0,
+        shadowColor: Colors.black12,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             icon: const Icon(Icons.inventory_outlined),
@@ -47,20 +59,32 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
               );
             },
             tooltip: 'Uncategorized Products',
+            color: Colors.white70,
           ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
               _showFilterOptions();
             },
+            tooltip: 'Filter Categories',
+            color: Colors.white70,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               context.read<CategoriesCubit>().fetchAllCategories();
             },
+            tooltip: 'Refresh Categories',
+            color: Colors.white70,
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: Colors.white24,
+          ),
+        ),
       ),
       body: BlocConsumer<CategoriesCubit, CategoriesState>(
         listener: (context, state) {
@@ -104,7 +128,7 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
         onPressed: () {
           _showAddCategorySheet();
         },
-        backgroundColor: Colors.grey.shade700,
+        backgroundColor: Colors.black87,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Add Category'),
@@ -114,72 +138,110 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.category_outlined,
-            size: 100,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'No Categories Found',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: const BoxDecoration(
+                color: Colors.black12,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.category_outlined,
+                size: 80,
+                color: Colors.black54,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Create your first product category',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+            const SizedBox(height: 24),
+            const Text(
+              'No Categories Yet',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                letterSpacing: 0.5,
+              ),
             ),
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: () {
-              _showAddCategorySheet();
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add Category'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey.shade700,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            const SizedBox(height: 12),
+            Text(
+              'Start organizing your products by creating your first category. This will help customers find products more easily.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                _showAddCategorySheet();
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Create First Category'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCategoriesList(List<CategoryEntity> categories) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.65, // Increased height for more space
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        return CategoryCardWidget(
-          category: category,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => CategoryProductsPage(category: category),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive column count based on screen width
+        int crossAxisCount;
+        double childAspectRatio;
+
+        if (constraints.maxWidth >= 1400) {
+          crossAxisCount = 5; // Extra large screens
+          childAspectRatio = 0.75;
+        } else if (constraints.maxWidth >= 1200) {
+          crossAxisCount = 4; // Large screens
+          childAspectRatio = 0.75;
+        } else if (constraints.maxWidth >= 900) {
+          crossAxisCount = 3; // Medium screens
+          childAspectRatio = 0.7;
+        } else if (constraints.maxWidth >= 600) {
+          crossAxisCount = 2; // Small tablets/small screens
+          childAspectRatio = 0.65;
+        } else {
+          crossAxisCount = 1; // Mobile
+          childAspectRatio = 0.6;
+        }
+
+        return GridView.builder(
+          padding: EdgeInsets.all(constraints.maxWidth >= 600 ? 24 : 16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: constraints.maxWidth >= 600 ? 20 : 16,
+            mainAxisSpacing: constraints.maxWidth >= 600 ? 20 : 16,
+          ),
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final category = categories[index];
+            return CategoryCardWidget(
+              category: category,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => CategoryProductsPage(category: category),
+                  ),
+                );
+              },
+              onEdit: () => _showEditCategorySheet(category),
+              onDelete: () => _showDeleteConfirmation(category),
             );
           },
-          onEdit: () => _showEditCategorySheet(category),
-          onDelete: () => _showDeleteConfirmation(category),
         );
       },
     );
@@ -187,45 +249,58 @@ class _CategoriesManagementPageState extends State<CategoriesManagementPage> {
 
   Widget _buildErrorState(String error) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 100,
-            color: Colors.red[300],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Error',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.red[700],
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: const BoxDecoration(
+                color: Colors.black12,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 80,
+                color: Colors.black54,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            error,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
+            const SizedBox(height: 24),
+            const Text(
+              'Something Went Wrong',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                letterSpacing: 0.5,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.read<CategoriesCubit>().fetchAllCategories();
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
+            const SizedBox(height: 12),
+            Text(
+              error,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<CategoriesCubit>().fetchAllCategories();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

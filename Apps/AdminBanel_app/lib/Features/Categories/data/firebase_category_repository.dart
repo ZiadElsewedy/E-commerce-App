@@ -17,7 +17,7 @@ class FirebaseCategoryRepository implements CategoryRepository {
           .get();
 
       return snapshot.docs
-          .map((doc) => CategoryEntity.fromJson({...doc.data(), 'id': doc.id}))
+          .map((doc) => CategoryEntity.fromJson({...doc.data()}, documentId: doc.id))
           .toList();
     } catch (e) {
       throw Exception('Failed to fetch categories: ${e.toString()}');
@@ -34,7 +34,7 @@ class FirebaseCategoryRepository implements CategoryRepository {
           .get();
 
       return snapshot.docs
-          .map((doc) => CategoryEntity.fromJson({...doc.data(), 'id': doc.id}))
+          .map((doc) => CategoryEntity.fromJson({...doc.data()}, documentId: doc.id))
           .toList();
     } catch (e) {
       throw Exception('Failed to fetch active categories: ${e.toString()}');
@@ -46,7 +46,7 @@ class FirebaseCategoryRepository implements CategoryRepository {
     try {
       final doc = await _firestore.collection(_collection).doc(id).get();
       if (!doc.exists) return null;
-      return CategoryEntity.fromJson({...doc.data()!, 'id': doc.id});
+      return CategoryEntity.fromJson({...doc.data()!}, documentId: doc.id);
     } catch (e) {
       throw Exception('Failed to fetch category: ${e.toString()}');
     }
@@ -64,8 +64,7 @@ class FirebaseCategoryRepository implements CategoryRepository {
       if (snapshot.docs.isEmpty) return null;
       return CategoryEntity.fromJson({
         ...snapshot.docs.first.data(),
-        'id': snapshot.docs.first.id
-      });
+      }, documentId: snapshot.docs.first.id);
     } catch (e) {
       throw Exception('Failed to fetch category by name: ${e.toString()}');
     }
@@ -153,7 +152,7 @@ class FirebaseCategoryRepository implements CategoryRepository {
         .orderBy('name')
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => CategoryEntity.fromJson({...doc.data(), 'id': doc.id}))
+            .map((doc) => CategoryEntity.fromJson({...doc.data()}, documentId: doc.id))
             .toList());
   }
 }
