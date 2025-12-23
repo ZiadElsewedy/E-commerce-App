@@ -6,6 +6,8 @@ import '../cubit/product_cubit.dart';
 import '../cubit/product_state.dart';
 import '../widgets/product_image_gallery.dart';
 import '../widgets/variant_selector.dart';
+import '../../../Cart/presentation/cubit/cart_cubit.dart';
+import '../../../Cart/presentation/pages/cart_page.dart';
 
 /// Product Details Page
 /// Displays complete product information with add to cart functionality
@@ -722,8 +724,41 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     );
   }
 
+  /// Add product to cart
+  /// إضافة المنتج إلى السلة
   void _addToCart(ProductEntity product) {
-    // TODO: Implement add to cart functionality
+    final cartCubit = context.read<CartCubit>();
+    
+    // Validate variant selection if product has variants
+    if (product.hasVariants && _selectedVariant == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a variant'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Validate stock
+    final maxQuantity = product.hasVariants && product.variants != null
+        ? (_selectedVariant?.quantity ?? 0)
+        : product.stockQuantity;
+
+    if (_quantity > maxQuantity) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Only $maxQuantity items available in stock'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Add to cart
+    cartCubit.addProductWithQuantity(product, _quantity);
+
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -741,6 +776,18 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'View Cart',
+          textColor: Colors.white,
+          onPressed: () {
+            // Navigate to cart page
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const CartPage(),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

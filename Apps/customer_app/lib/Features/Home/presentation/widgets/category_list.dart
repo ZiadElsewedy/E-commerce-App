@@ -35,7 +35,7 @@ class CategoryList extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 110,
+          height: 120,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -60,19 +60,19 @@ class CategoryList extends StatelessWidget {
           children: [
             // Category Image Circle
             Container(
-              width: 70,
-              height: 70,
+              width: 65,
+              height: 65,
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Colors.grey[300]!,
-                  width: 2,
+                  width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 8,
+                    blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -97,12 +97,12 @@ class CategoryList extends StatelessWidget {
                       ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             // Category Name
             Text(
               category.name,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),

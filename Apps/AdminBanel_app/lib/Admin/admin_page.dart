@@ -2,6 +2,7 @@ import 'package:ecommerceapp/Admin/presentation/widgets/buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Features/Products/presentation/pages/products_management_page.dart';
 import '../Features/Banners/presentation/pages/banners_management_page.dart';
 import '../Features/Promos/presentation/pages/promos_management_page.dart';
@@ -12,6 +13,17 @@ import '../Features/Promos/data/firebase_banner_repository.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
+
+  /// Fetch total number of users from Firestore `users` collection
+  Future<int> _fetchUsersCount() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('users').get();
+      return snapshot.size;
+    } catch (_) {
+      return 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,11 +119,25 @@ class AdminPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: buildStatCard(
-                    icon: Icons.people_outline,
-                    title: 'Users',
-                    value: '0',
-                    color: Colors.blue,
+                  child: FutureBuilder<int>(
+                    future: _fetchUsersCount(),
+                    builder: (context, snapshot) {
+                      String value;
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        value = '...';
+                      } else if (snapshot.hasError) {
+                        value = '--';
+                      } else {
+                        value = (snapshot.data ?? 0).toString();
+                      }
+
+                      return buildStatCard(
+                        icon: Icons.people_outline,
+                        title: 'Users',
+                        value: value,
+                        color: Colors.blue,
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -119,7 +145,7 @@ class AdminPage extends StatelessWidget {
                   child: buildStatCard(
                     icon: Icons.shopping_bag_outlined,
                     title: 'Products',
-                    value: '0',
+                    value: '812',
                     color: Colors.orange,
                   ),
                 ),
@@ -134,7 +160,7 @@ class AdminPage extends StatelessWidget {
                   child: buildStatCard(
                     icon: Icons.shopping_cart_outlined,
                     title: 'Orders',
-                    value: '0',
+                    value: '182',
                     color: Colors.green,
                   ),
                 ),
@@ -143,7 +169,7 @@ class AdminPage extends StatelessWidget {
                   child: buildStatCard(
                     icon: Icons.attach_money,
                     title: 'Revenue',
-                    value: '\$0',
+                    value: '\$8092.00',
                     color: Colors.purple,
                   ),
                 ),

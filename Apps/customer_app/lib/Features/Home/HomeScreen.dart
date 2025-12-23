@@ -6,10 +6,21 @@ import 'presentation/cubit/home_state.dart';
 import 'presentation/widgets/banner_carousel.dart';
 import 'presentation/widgets/category_list.dart';
 import 'presentation/widgets/product_card.dart';
+import 'presentation/widgets/product_grid_item.dart';
+import '../Cart/presentation/cubit/cart_cubit.dart';
+import '../Cart/presentation/cubit/cart_state.dart';
+import '../Wishlist/presentation/cubit/wishlist_cubit.dart';
+import 'domain/entities/product_entity.dart';
 import '../Product/presentation/pages/product_details_page.dart';
 import '../Product/presentation/cubit/product_cubit.dart';
 import '../Product/data/firebase_product_repository.dart';
 import '../Profile/Presentation/pages/profile_page.dart';
+import '../Cart/presentation/pages/cart_page.dart';
+import '../Wishlist/presentation/pages/wishlist_page.dart';
+import '../Catalog/presentation/pages/search_page.dart';
+import '../Catalog/presentation/pages/category_products_page.dart';
+import '../Catalog/domain/entities/category_entity.dart' as CatalogCategory;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -55,18 +66,42 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              // TODO: Navigate to search
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchPage(),
+                ),
+              );
             },
             icon: Icon(Icons.search, color: Colors.grey[800]),
           ),
-          IconButton(
-            onPressed: () {
-              // TODO: Navigate to cart
+          BlocBuilder<WishlistCubit, WishlistState>(
+            builder: (context, wishlistState) {
+              final hasItems = wishlistState.items.isNotEmpty;
+              return IconButton(
+                onPressed: _navigateToWishlist,
+                icon: Icon(
+                  hasItems ? Icons.favorite : Icons.favorite_border,
+                  color: hasItems ? Colors.red : Colors.grey[800],
+                ),
+              );
             },
+          ),
+          BlocBuilder<CartCubit, CartState>(
+            builder: (context, cartState) {
+              final count = cartState.totalItems;
+              return IconButton(
+                onPressed: _navigateToCart,
             icon: Badge(
-              label: const Text('3'),
-              child: Icon(Icons.shopping_cart_outlined, color: Colors.grey[800]),
+                  isLabelVisible: count > 0,
+                  label: Text(count.toString()),
+                  child: Icon(
+                    Icons.shopping_cart_outlined,
+                    color: Colors.grey[800],
+                  ),
             ),
+              );
+            },
           ),
           IconButton(
             onPressed: () {
@@ -116,8 +151,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (state.categories.isNotEmpty)
                       CategoryList(
                         categories: state.categories,
-                        onCategoryTap: (category) {
-                          // TODO: Navigate to category products
+                        onCategoryTap: (homeCategory) {
+                          // Convert Home CategoryEntity to Catalog CategoryEntity
+                          // تحويل كيان فئة الرئيسية إلى كيان فئة الكتالوج
+                          final catalogCategory = CatalogCategory.CategoryEntity(
+                            id: homeCategory.id,
+                            name: homeCategory.name,
+                            imageUrl: homeCategory.imageUrl ?? '',
+                            createdAt: Timestamp.fromDate(homeCategory.createdAt),
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CategoryProductsPage(
+                                category: catalogCategory,
+                              ),
+                            ),
+                          );
                         },
                       ),
                     
@@ -133,14 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      _buildHorizontalProductList(state.dealsProducts),
+                      _buildProductGrid(state.dealsProducts),
                       const SizedBox(height: 24),
                     ],
                     
                     // Featured Products
                     if (state.featuredProducts.isNotEmpty) ...[
                       _buildSectionHeader(
-                        title: '⭐ Featured Products',
+                        title: 'Featured Products',
                         subtitle: 'Handpicked for you',
                         onViewAll: () {
                           // TODO: Navigate to featured products
@@ -154,14 +204,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     // New Arrivals
                     if (state.newArrivals.isNotEmpty) ...[
                       _buildSectionHeader(
-                        title: '🆕 New Arrivals',
+                        title: 'New Arrivals',
                         subtitle: 'Just landed',
                         onViewAll: () {
                           // TODO: Navigate to new arrivals
                         },
                       ),
                       const SizedBox(height: 12),
-                      _buildHorizontalProductList(state.newArrivals),
+                      _buildProductGrid(state.newArrivals),
                       const SizedBox(height: 24),
                     ],
                     
@@ -182,26 +232,36 @@ class _HomeScreenState extends State<HomeScreen> {
   // Search Bar
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SearchPage(),
+            ),
+          );
+        },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+            color: Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: Colors.grey[200]!),
         ),
         child: Row(
           children: [
-            Icon(Icons.search, color: Colors.grey[600]),
+              Icon(Icons.search, color: Colors.grey[600], size: 20),
             const SizedBox(width: 12),
             Text(
               'Search for products...',
               style: TextStyle(
                 color: Colors.grey[500],
-                fontSize: 15,
+                  fontSize: 14,
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -224,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
@@ -234,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       color: Colors.grey[600],
                     ),
                   ),
@@ -245,9 +305,13 @@ class _HomeScreenState extends State<HomeScreen> {
           if (onViewAll != null)
             TextButton(
               onPressed: onViewAll,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
               child: Text(
                 'View All',
                 style: TextStyle(
+                  fontSize: 13,
                   color: Colors.grey[700],
                   fontWeight: FontWeight.w600,
                 ),
@@ -258,31 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Horizontal Product List
-  Widget _buildHorizontalProductList(List products) {
-    return SizedBox(
-      height: 260,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          return Container(
-            width: 160,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            child: ProductCard(
-              product: products[index],
-              onTap: () {
-                _navigateToProduct(products[index].id);
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // Product Grid
+  // Product Grid - Square Cards (2 columns)
   Widget _buildProductGrid(List products) {
     return GridView.builder(
       shrinkWrap: true,
@@ -290,17 +330,28 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.72,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: products.length > 6 ? 6 : products.length,
+      itemCount: products.length,
       itemBuilder: (context, index) {
-        return ProductCard(
-          product: products[index],
-          onTap: () {
-            _navigateToProduct(products[index].id);
-          },
+        final product = products[index] as ProductEntity;
+        return _buildProductGridItem(product);
+      },
+    );
+  }
+
+  // Build product grid item
+  Widget _buildProductGridItem(ProductEntity product) {
+    return BlocBuilder<WishlistCubit, WishlistState>(
+      builder: (context, wishlistState) {
+        final isInWishlist = wishlistState.contains(product);
+
+        return ProductGridItem(
+          product: product,
+          isInWishlist: isInWishlist,
+          onTap: () => _navigateToProduct(product.id),
         );
       },
     );
@@ -326,6 +377,48 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (context) => const ProfilePage(),
       ),
+    );
+  }
+
+  void _navigateToCart() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const CartPage(),
+      ),
+    );
+  }
+
+  void _navigateToWishlist() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const WishlistPage(),
+      ),
+    );
+  }
+
+  Widget _buildProductCard(ProductEntity product) {
+    return BlocBuilder<WishlistCubit, WishlistState>(
+      builder: (context, wishlistState) {
+        final isInWishlist = wishlistState.contains(product);
+
+        return ProductCard(
+          product: product,
+          isInWishlist: isInWishlist,
+          onTap: () => _navigateToProduct(product.id),
+          onAddToCart: () {
+            context.read<CartCubit>().addHomeProduct(product);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${product.name} added to cart'),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
+          onToggleWishlist: () {
+            context.read<WishlistCubit>().toggle(product);
+          },
+        );
+      },
     );
   }
 

@@ -8,6 +8,10 @@ import '../widgets/profile_tile.dart';
 import '../widgets/profile_loading.dart' as widgets;
 import 'edit_profile_page.dart';
 import '../../../auth/Presentation/Pages/Login_Page.dart';
+import '../../../Orders/presentation/pages/orders_page.dart';
+import '../../../Orders/presentation/cubit/order_cubit.dart';
+import '../../../Orders/data/repositories/order_repository_impl.dart';
+import '../../../Orders/data/datasources/order_remote_datasource.dart';
 
 /// ProfilePage - User profile page
 /// 
@@ -149,9 +153,18 @@ class _ProfilePageState extends State<ProfilePage> {
           subtitle: 'View your order history',
           iconColor: theme.colorScheme.secondary,
           onTap: () {
-            // TODO: Navigate to orders page
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Orders page coming soon')),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BlocProvider(
+                  create: (context) => OrderCubit(
+                    repository: OrderRepositoryImpl(
+                      dataSource: OrderRemoteDataSource(),
+                    ),
+                  ),
+                  child: const OrdersPage(),
+                ),
+              ),
             );
           },
         ),
